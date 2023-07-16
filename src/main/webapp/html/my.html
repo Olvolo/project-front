@@ -1,11 +1,169 @@
-<html>
+<html lang="en">
 <head>
     <title>RPG</title>
-    <script src=https://code.jquery.com/jquery-3.6.0.min.js></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link href="/css/my.css" rel="stylesheet">
 </head>
 <body>
 <h1>RPG admin panel</h1>
+<h2>Account list:</h2>
+<div id="countPerPageSection">
+    Count per page:
+    <label for="countPerPageSelect"></label>
+    <select id="countPerPageSelect">
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+        <option value="10">10</option>
+        <option value="20">20</option>
+    </select>
+</div>
+<table id="playersTable">
+    <thead>
+    <tr>
+        <th>#</th>
+        <th>Name</th>
+        <th>Title</th>
+        <th>Race</th>
+        <th>Profession</th>
+        <th>Level</th>
+        <th>Birthday</th>
+        <th>Banned</th>
+        <th>Edit</th>
+        <th>Delete</th>
+    </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+<div id="paginationButtons">
+    <button id="prevPageButton">Prev</button>
+    <span id="currentPageNumber">Page 0</span>
+    <button id="nextPageButton">Next</button>
+</div>
+<hr>
+<div id="createPlayerSection">
+    <h2>Create new account</h2>
+    <label htmlFor="nameInput">Name:</label>
+    <label for="nameInput"></label>
+    <input type="text" id="nameInput" maxLength="12"><br>
+    <label htmlFor="titleInput">Title:</label>
+    <label for="titleInput"></label>
+    <input type="text" id="titleInput" maxLength="30"><br>
+    <label htmlFor="raceSelect">Race:</label>
+    <label for="raceSelect"></label>
+    <select id="raceSelect">
+        <option value="HUMAN">Human</option>
+        <option value="DWARF">Dwarf</option>
+        <option value="ELF">Elf</option>
+        <option value="GIANT">Giant</option>
+        <option value="ORC">Orc</option>
+        <option value="TROLL">Troll</option>
+        <option value="HOBBIT">Hobbit</option>
+    </select><br>
+    <label htmlFor="professionSelect">Profession:</label>
+    <label for="professionSelect"></label>
+    <select id="professionSelect">
+        <option value="WARRIOR">Warrior</option>
+        <option value="ROGUE">Rogue</option>
+        <option value="SORCERER">Sorcerer</option>
+        <option value="CLERIC">Cleric</option>
+        <option value="PALADIN">Paladin</option>
+        <option value="NAZGUL">Nazgul</option>
+        <option value="WARLOCK">Warlock</option>
+        <option value="DRUID">Druid</option>
+    </select><br>
+    <label htmlFor="levelInput">Level:</label>
+    <label for="levelInput"></label>
+    <input type="number" id="levelInput" min="0" max="100"><br>
+    <label htmlFor="birthdayInput">Birthday:</label>
+    <label for="birthdayInput"></label>
+    <input type="date" id="birthdayInput"><br>
+    <label htmlFor="bannedCheckbox">Banned:</label>
+    <label for="bannedCheckbox"></label>
+    <input type="checkbox" id="bannedCheckbox"><br>
+    <button id="createPlayerButton">
+        <img src="/img/save.png" alt="Save">
+    </button>
+</div>
 
+<script>
+    $(document).ready(function () {
+        let pageSize = 4; // Number of players to show per page
+        let currentPage = 0; // Current page number
+
+        function getPlayers() {
+            $.get("/rest/players", {pageNumber: currentPage, pageSize: pageSize})
+                .done(function (players) {
+                    const tableBody = $("#playersTable tbody");
+                    tableBody.empty();
+
+                    players.forEach(function (player, index) {
+                        const row = $("<tr>");
+                        row.append($("<td>").text(index + 1));
+                        row.append($("<td>").text(player.name));
+                        row.append($("<td>").text(player.title));
+                        row.append($("<td>").text(player.race));
+                        row.append($("<td>").text(player.profession));
+                        row.append($("<td>").text(player.level));
+                        row.append($("<td>").text(new Date(player.birthday).toLocaleDateString()));
+                        row.append($("<td>").text(player.banned));
+                        row.append($("<td>").html("<img src=\"/img/edit.png\" class=\"editButton\" alt=\"\">"));
+                        row.append($("<td>").html("<img src=\"/img/delete.png\" class=\"deleteButton\" alt=\"\">"));
+
+                        tableBody.append(row);
+                    });
+                });
+        }
+
+        function updatePaginationButtons() {
+            $.get("/rest/players/count", function (count) {
+                const totalPages = Math.ceil(count / pageSize);
+                $("#currentPageNumber").text("Page " + (currentPage + 1));
+                $("#prevPageButton").prop("disabled", currentPage === 0);
+                $("#nextPageButton").prop("disabled", currentPage === totalPages - 1);
+            });
+        }
+
+        function goToPage(pageNumber) {
+            currentPage = pageNumber;
+            getPlayers();
+            updatePaginationButtons();
+        }
+
+        function deletePlayer(id) {
+            $.ajax({
+                url: "/rest/players/" + id,
+                type: "DELETE"
+            });
+        }
+
+        $("#prevPageButton").click(function () {
+            goToPage(currentPage - 1);
+        });
+
+        $("#nextPageButton").click(function () {
+            goToPage(currentPage + 1);
+        });
+
+        $("#playersTable").on("click", ".deleteButton", function () {
+            const playerId = $(this).closest("tr").find("td:first").text();
+            deletePlayer(playerId);
+        });
+
+        $("#createPlayerButton").click(function () {
+            // Handle create player functionality here
+        });
+
+        $("#countPerPageSelect").change(function () {
+            pageSize = parseInt($(this).val(), 10);
+            currentPage = 0;
+            getPlayers();
+            updatePaginationButtons();
+        });
+
+        getPlayers();
+        updatePaginationButtons();
+    });
+</script>
 </body>
 </html>
